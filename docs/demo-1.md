@@ -15,7 +15,9 @@ curl -X POST http://localhost:5000/prospects \
     "userEmail": "rep@example.com",
     "contactEmail": "jane@example.com",
     "contactPhone": "555-6789",
-    "notes": "Met in the afternoon"
+    "notes": "Met in the afternoon",
+    "latitude": 41.5868,
+    "longitude": -93.625
 }'
 
 curl -X POST http://localhost:5000/prospects/1/notes \

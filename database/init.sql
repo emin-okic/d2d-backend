@@ -14,7 +14,9 @@ CREATE TABLE IF NOT EXISTS prospects (
     userEmail VARCHAR(255) NOT NULL,
     contactEmail VARCHAR(255),
     contactPhone VARCHAR(50),
-    notes TEXT
+    notes TEXT,
+    latitude DOUBLE NOT NULL DEFAULT 0,
+    longitude DOUBLE NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS notes (

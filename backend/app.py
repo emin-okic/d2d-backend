@@ -72,14 +72,14 @@ def create_prospect():
     cursor = conn.cursor()
 
     cursor.execute("""
-        INSERT INTO prospects (fullName, address, count, list, userEmail, contactEmail, contactPhone, notes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (
-        data["fullName"], data["address"], data.get("count", 0),
-        data.get("list", "Prospects"), data["userEmail"],
-        data.get("contactEmail", ""), data.get("contactPhone", ""),
-        data.get("notes", "")
-    ))
+    INSERT INTO prospects (fullName, address, count, list, userEmail, contactEmail, contactPhone, notes, latitude, longitude)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+""", (
+    data["fullName"], data["address"], data.get("count", 0),
+    data.get("list", "Prospects"), data["userEmail"],
+    data.get("contactEmail", ""), data.get("contactPhone", ""),
+    data.get("notes", ""), data["latitude"], data["longitude"]
+))
 
     conn.commit()
     cursor.close()
