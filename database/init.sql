@@ -16,3 +16,12 @@ CREATE TABLE IF NOT EXISTS prospects (
     contactPhone VARCHAR(50),
     notes TEXT
 );
+
+CREATE TABLE IF NOT EXISTS notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    prospectId INT NOT NULL,
+    content TEXT NOT NULL,
+    authorEmail VARCHAR(255) NOT NULL,
+    date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (prospectId) REFERENCES prospects(id) ON DELETE CASCADE
+);

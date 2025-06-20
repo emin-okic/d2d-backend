@@ -91,11 +91,25 @@ def create_prospect():
 def get_prospects():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+
+    # Step 1: Get all prospects
     cursor.execute("SELECT * FROM prospects")
-    results = cursor.fetchall()
+    prospects = cursor.fetchall()
+
+    # Step 2: For each prospect, fetch and merge notes
+    for prospect in prospects:
+        prospect_id = prospect["id"]
+        cursor.execute("SELECT content FROM notes WHERE prospectId = %s ORDER BY date ASC", (prospect_id,))
+        notes = cursor.fetchall()
+
+        # Merge notes into a single string (or use an array if preferred)
+        note_texts = [n["content"] for n in notes]
+        all_notes = [prospect["notes"]] if prospect["notes"] else []
+        prospect["notes"] = all_notes + note_texts
+
     cursor.close()
     conn.close()
-    return jsonify(results)
+    return jsonify(prospects)
 
 
 @app.route("/prospects/<int:prospect_id>", methods=["PUT"])
@@ -130,6 +144,47 @@ def delete_prospect(prospect_id):
     cursor.close()
     conn.close()
     return jsonify({"message": "Prospect deleted"})
+
+@app.route("/prospects/<int:prospect_id>/notes", methods=["POST"])
+def add_note(prospect_id):
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO notes (prospectId, content, authorEmail, date)
+        VALUES (%s, %s, %s, %s)
+    """, (
+        prospect_id,
+        data["content"],
+        data["authorEmail"],
+        data.get("date")  # Optional; can be null to default to current timestamp
+    ))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Note added"}), 201
+
+
+@app.route("/prospects/<int:prospect_id>/notes", methods=["GET"])
+def get_notes(prospect_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM notes WHERE prospectId = %s ORDER BY date DESC", (prospect_id,))
+    notes = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(notes)
+
+
+@app.route("/notes/<int:note_id>", methods=["DELETE"])
+def delete_note(note_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM notes WHERE id = %s", (note_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Note deleted"})
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
