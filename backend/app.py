@@ -186,5 +186,74 @@ def delete_note(note_id):
     conn.close()
     return jsonify({"message": "Note deleted"})
 
+@app.route("/prospects/<int:prospect_id>/knocks", methods=["POST"])
+def add_knock(prospect_id):
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Step 1: Insert knock
+    cursor.execute("""
+        INSERT INTO knocks (prospectId, date, status, latitude, longitude, userEmail)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (
+        prospect_id,
+        data["date"],
+        data["status"],
+        data["latitude"],
+        data["longitude"],
+        data["userEmail"]
+    ))
+
+    # Step 2: Increment count for the prospect
+    cursor.execute("""
+        UPDATE prospects
+        SET count = count + 1
+        WHERE id = %s
+    """, (prospect_id,))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Knock added and count updated"}), 201
+
+
+@app.route("/prospects/<int:prospect_id>/knocks", methods=["GET"])
+def get_knocks(prospect_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM knocks WHERE prospectId = %s ORDER BY date DESC", (prospect_id,))
+    knocks = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(knocks)
+
+@app.route("/prospects/<int:prospect_id>", methods=["GET"])
+def get_prospect_by_id(prospect_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Fetch the prospect
+    cursor.execute("SELECT * FROM prospects WHERE id = %s", (prospect_id,))
+    prospect = cursor.fetchone()
+
+    if not prospect:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Prospect not found"}), 404
+
+    # Fetch related notes
+    cursor.execute("SELECT content FROM notes WHERE prospectId = %s ORDER BY date ASC", (prospect_id,))
+    notes = cursor.fetchall()
+
+    # Combine existing text notes with note table entries
+    note_texts = [n["content"] for n in notes]
+    all_notes = [prospect["notes"]] if prospect["notes"] else []
+    prospect["notes"] = all_notes + note_texts
+
+    cursor.close()
+    conn.close()
+    return jsonify(prospect)
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
