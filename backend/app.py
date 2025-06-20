@@ -20,15 +20,17 @@ def list_users():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Fetch all users
-    cursor.execute("SELECT email FROM users")
+    cursor.execute("SELECT id, email FROM users")
     users = cursor.fetchall()
 
-    # For each user, fetch their trip IDs
     for user in users:
         cursor.execute("SELECT id FROM trips WHERE userEmail = %s", (user["email"],))
         trips = cursor.fetchall()
         user["tripIds"] = [trip["id"] for trip in trips]
+
+        cursor.execute("SELECT id FROM prospects WHERE userEmail = %s", (user["email"],))
+        prospects = cursor.fetchall()
+        user["prospectIds"] = [p["id"] for p in prospects]
 
     cursor.close()
     conn.close()
@@ -471,6 +473,57 @@ def delete_trip(trip_id):
     cursor.close()
     conn.close()
     return jsonify({"message": "Trip deleted"})
+
+@app.route("/users/<user_email>/prospects", methods=["GET"])
+def get_prospects_for_user(user_email):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM prospects WHERE userEmail = %s", (user_email,))
+    prospects = cursor.fetchall()
+
+    for prospect in prospects:
+        prospect_id = prospect["id"]
+        cursor.execute("SELECT content FROM notes WHERE prospectId = %s ORDER BY date ASC", (prospect_id,))
+        notes = cursor.fetchall()
+        note_texts = [n["content"] for n in notes]
+        all_notes = [prospect["notes"]] if prospect["notes"] else []
+        prospect["notes"] = all_notes + note_texts
+
+    cursor.close()
+    conn.close()
+    return jsonify(prospects)
+
+@app.route("/users/<int:user_id>/prospects", methods=["GET"])
+def get_prospects_by_user_id(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Look up the user's email
+    cursor.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "User not found"}), 404
+
+    email = user["email"]
+
+    # Get all prospects for the user
+    cursor.execute("SELECT * FROM prospects WHERE userEmail = %s", (email,))
+    prospects = cursor.fetchall()
+
+    for prospect in prospects:
+        prospect_id = prospect["id"]
+        cursor.execute("SELECT content FROM notes WHERE prospectId = %s ORDER BY date ASC", (prospect_id,))
+        notes = cursor.fetchall()
+        note_texts = [n["content"] for n in notes]
+        all_notes = [prospect["notes"]] if prospect["notes"] else []
+        prospect["notes"] = all_notes + note_texts
+
+    cursor.close()
+    conn.close()
+    return jsonify(prospects)
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
