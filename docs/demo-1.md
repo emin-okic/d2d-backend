@@ -67,3 +67,35 @@ curl -X POST http://localhost:5000/prospects/1/knocks \
     "longitude": -93.625,
     "userEmail": "rep@example.com"
 }'
+
+curl -X POST http://localhost:5000/prospects/1/knocks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "date": "2025-06-21T10:15:00",
+    "status": "Answered",
+    "latitude": 41.5868,
+    "longitude": -93.625,
+    "userEmail": "rep@example.com"
+}'
+
+curl -X POST http://localhost:5000/trips \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "a14d7cfc-e2b3-4f12-a123-ffcb00a1a934",
+    "userEmail": "rep@example.com",
+    "startAddress": "123 Main St",
+    "endAddress": "456 Oak Ave",
+    "miles": 4.2,
+    "date": "2025-06-21T09:00:00"
+}'
+
+curl -X POST http://localhost:5000/trips \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "a14d7cfc-e2b3-4f12-a123-ffcb00a1a935",
+    "userEmail": "rep@example.com",
+    "startAddress": "123 Main St",
+    "endAddress": "456 Oak Ave",
+    "miles": 4.2,
+    "date": "2025-06-21T09:00:00"
+}'

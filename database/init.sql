@@ -63,3 +63,12 @@ CREATE TABLE IF NOT EXISTS knocks (
         (prospectId IS NULL AND customerId IS NOT NULL)
     )
 );
+
+CREATE TABLE IF NOT EXISTS trips (
+    id VARCHAR(36) PRIMARY KEY,
+    userEmail VARCHAR(255) NOT NULL,
+    startAddress VARCHAR(255) NOT NULL,
+    endAddress VARCHAR(255) NOT NULL,
+    miles DOUBLE NOT NULL,
+    date DATETIME NOT NULL
+);

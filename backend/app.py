@@ -19,8 +19,17 @@ def get_db_connection():
 def list_users():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+
+    # Fetch all users
     cursor.execute("SELECT email FROM users")
     users = cursor.fetchall()
+
+    # For each user, fetch their trip IDs
+    for user in users:
+        cursor.execute("SELECT id FROM trips WHERE userEmail = %s", (user["email"],))
+        trips = cursor.fetchall()
+        user["tripIds"] = [trip["id"] for trip in trips]
+
     cursor.close()
     conn.close()
     return jsonify(users)
@@ -418,6 +427,50 @@ def get_knocks_for_customer(customer_id):
     cursor.close()
     conn.close()
     return jsonify(knocks)
+
+
+@app.route("/trips", methods=["POST"])
+def create_trip():
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO trips (id, userEmail, startAddress, endAddress, miles, date)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (
+        data["id"],
+        data["userEmail"],
+        data["startAddress"],
+        data["endAddress"],
+        data["miles"],
+        data["date"]
+    ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Trip created"}), 201
+
+@app.route("/trips", methods=["GET"])
+def get_trips():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM trips ORDER BY date DESC")
+    trips = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(trips)
+
+@app.route("/trips/<trip_id>", methods=["DELETE"])
+def delete_trip(trip_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM trips WHERE id = %s", (trip_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Trip deleted"})
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
