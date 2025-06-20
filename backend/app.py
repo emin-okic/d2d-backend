@@ -15,22 +15,6 @@ def get_db_connection():
         database=os.getenv("DB_NAME", "d2dcrm")
     )
 
-def create_users_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            email VARCHAR(255) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL
-        )
-    """)
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-create_users_table()
-
 @app.route("/users", methods=["GET"])
 def list_users():
     conn = get_db_connection()
