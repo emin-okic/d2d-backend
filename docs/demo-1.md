@@ -20,6 +20,37 @@ curl -X POST http://localhost:5000/prospects \
     "longitude": -93.625
 }'
 
+curl -X POST http://localhost:5000/customers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fullName": "John Buyer",
+    "address": "789 Maple Ave",
+    "count": 1,
+    "userEmail": "rep@example.com",
+    "contactEmail": "john@example.com",
+    "contactPhone": "555-0000",
+    "notes": "Signed up last week",
+    "latitude": 41.5890,
+    "longitude": -93.6210
+}'
+
+curl -X POST http://localhost:5000/customers/1/notes \
+-H "Content-Type: application/json" \
+-d '{
+  "content": "Customer signed up today.",
+  "authorEmail": "rep@example.com"
+}'
+
+curl -X POST http://localhost:5000/customers/1/knocks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "date": "2025-06-21T14:30:00",
+    "status": "Answered",
+    "latitude": 41.5890,
+    "longitude": -93.6210,
+    "userEmail": "rep@example.com"
+}'
+
 curl -X POST http://localhost:5000/prospects/1/notes \
   -H "Content-Type: application/json" \
   -d '{

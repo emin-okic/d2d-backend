@@ -255,5 +255,169 @@ def get_prospect_by_id(prospect_id):
     conn.close()
     return jsonify(prospect)
 
+@app.route("/customers", methods=["POST"])
+def create_customer():
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO customers (fullName, address, count, userEmail, contactEmail, contactPhone, notes, latitude, longitude)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        data["fullName"],
+        data["address"],
+        data.get("count", 0),
+        data["userEmail"],
+        data.get("contactEmail", ""),
+        data.get("contactPhone", ""),
+        data.get("notes", ""),
+        data.get("latitude", 0.0),
+        data.get("longitude", 0.0)
+    ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Customer created"}), 201
+
+@app.route("/customers", methods=["GET"])
+def get_customers():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Step 1: Get all customers
+    cursor.execute("SELECT * FROM customers")
+    customers = cursor.fetchall()
+
+    # Step 2: Attach notes to each customer
+    for customer in customers:
+        customer_id = customer["id"]
+        cursor.execute("SELECT content FROM notes WHERE customerId = %s ORDER BY date ASC", (customer_id,))
+        notes = cursor.fetchall()
+
+        note_texts = [n["content"] for n in notes]
+        all_notes = [customer["notes"]] if customer["notes"] else []
+        customer["notes"] = all_notes + note_texts
+
+    cursor.close()
+    conn.close()
+    return jsonify(customers)
+
+@app.route("/customers/<int:customer_id>", methods=["GET"])
+def get_customer_by_id(customer_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM customers WHERE id = %s", (customer_id,))
+    customer = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if customer:
+        return jsonify(customer)
+    return jsonify({"error": "Customer not found"}), 404
+
+@app.route("/customers/<int:customer_id>", methods=["DELETE"])
+def delete_customer(customer_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM customers WHERE id = %s", (customer_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Customer deleted"})
+
+@app.route("/customers/<int:customer_id>", methods=["PUT"])
+def update_customer(customer_id):
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE customers
+        SET fullName = %s, address = %s, count = %s, userEmail = %s,
+            contactEmail = %s, contactPhone = %s, notes = %s
+        WHERE id = %s
+    """, (
+        data["fullName"], data["address"], data.get("count", 0),
+        data["userEmail"], data.get("contactEmail", ""),
+        data.get("contactPhone", ""), data.get("notes", ""), customer_id
+    ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Customer updated"})
+
+@app.route("/customers/<int:customer_id>/notes", methods=["POST"])
+def add_note_to_customer(customer_id):
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO notes (customerId, content, authorEmail, date)
+        VALUES (%s, %s, %s, %s)
+    """, (
+        customer_id,
+        data["content"],
+        data["authorEmail"],
+        data.get("date")
+    ))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Customer note added"}), 201
+
+@app.route("/customers/<int:customer_id>/notes", methods=["GET"])
+def get_notes_for_customer(customer_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM notes WHERE customerId = %s ORDER BY date DESC", (customer_id,))
+    notes = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(notes)
+
+@app.route("/customers/<int:customer_id>/knocks", methods=["POST"])
+def add_knock_to_customer(customer_id):
+    data = request.get_json()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Insert knock for customer
+    cursor.execute("""
+        INSERT INTO knocks (customerId, date, status, latitude, longitude, userEmail)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (
+        customer_id,
+        data["date"],
+        data["status"],
+        data["latitude"],
+        data["longitude"],
+        data["userEmail"]
+    ))
+
+    # Increment knock count
+    cursor.execute("""
+        UPDATE customers
+        SET count = count + 1
+        WHERE id = %s
+    """, (customer_id,))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Customer knock added and count updated"}), 201
+
+@app.route("/customers/<int:customer_id>/knocks", methods=["GET"])
+def get_knocks_for_customer(customer_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM knocks WHERE customerId = %s ORDER BY date DESC", (customer_id,))
+    knocks = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(knocks)
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
