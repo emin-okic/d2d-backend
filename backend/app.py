@@ -2,9 +2,13 @@ import os
 import mysql.connector
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import hashlib
 
 app = Flask(__name__)
 CORS(app)
+
+def hash_password(password):
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 # Connect to MySQL
 def get_db_connection():
@@ -46,7 +50,8 @@ def list_users():
 def signup():
     data = request.get_json()
     email = data.get("email")
-    password = data.get("password")
+    raw_password = data.get("password")
+    hashed_password = hash_password(raw_password)
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -58,7 +63,7 @@ def signup():
         conn.close()
         return jsonify({"message": "User already exists"}), 400
 
-    cursor.execute("INSERT INTO users (email, password) VALUES (%s, %s)", (email, password))
+    cursor.execute("INSERT INTO users (email, password) VALUES (%s, %s)", (email, hashed_password))
     conn.commit()
     cursor.close()
     conn.close()
@@ -69,11 +74,12 @@ def signup():
 def login():
     data = request.get_json()
     email = data.get("email")
-    password = data.get("password")
+    raw_password = data.get("password")
+    hashed_password = hash_password(raw_password)
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE email = %s AND password = %s", (email, password))
+    cursor.execute("SELECT * FROM users WHERE email = %s AND password = %s", (email, hashed_password))
     user = cursor.fetchone()
     cursor.close()
     conn.close()

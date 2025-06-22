@@ -33,3 +33,4 @@ This backend provides a simple, scalable foundation for:
    git clone https://github.com/yourusername/d2d-backend.git
    cd d2d-backend
    docker-compose up --build
+   docker-compose down -v
